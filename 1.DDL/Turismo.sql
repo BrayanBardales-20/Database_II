@@ -5,7 +5,7 @@ Incluye Reservas, Clientes, Empleados, Transporte, Hospedaje
 Lugares Turisticos, Proveedores ect.
 */
 
---USA BASE MODELO
+--USA MODELO BASE
 use master;
 go
 
@@ -101,6 +101,7 @@ CREATE TABLE BJBC.Pais (
 	idpais int primary key identity(1,1),
 	nombrepais varchar(40) not null,
 	codigoiso varchar(3) not null, --PER, ARG, CHL, COL
+	fecha_registro datetime default getdate(),
 	constraint UQ_nombrepais
 	UNIQUE (nombrepais),
 	constraint UQ_codigoiso
@@ -121,6 +122,7 @@ CREATE TABLE BJBC.Nacionalidad (
 	idnacionalidad int identity(1,1),
 	nomnacionalidad varchar(80) not null,
 	idpais int not null,
+	fecha_registro datetime default getdate(),
 	constraint PK_nacionalidad
 	primary key (idnacionalidad),
 	constraint UQ_nacionalidad
@@ -144,6 +146,7 @@ CREATE TABLE BJBC.Region (
 	nomregion varchar (80) not null,
 	codigoubigeo varchar(3) not null,--CAJ, LIM, CUS
 	idpais int not null,
+	fecha_registro datetime default getdate(),
 	constraint PK_region primary key (idregion),
 	constraint UQ_nomregion UNIQUE (nomregion),
 	constraint FK_region_pais
@@ -165,6 +168,7 @@ CREATE TABLE BJBC.Subregion (
 	nomsubregion nvarchar(100) not null,
 	codigo_ubigeo varchar(4) not null,
 	idregion int not null,
+	fecha_registro datetime default getdate(),
 	constraint PK_subregion primary key (idsubregion),
 	constraint FK_subregion_region
 	foreign key (idregion)
@@ -186,6 +190,7 @@ CREATE TABLE BJBC.Ciudad (
 	nomciudad varchar(80) not null,
 	codigo_ubigeo varchar(6),
 	idsubregion int not null,
+	fecha_registro datetime default getdate(),
 	constraint PK_ciudad primary key (idciudad),
 	constraint FK_ciudad_subregion
 	foreign key (idsubregion)
@@ -206,6 +211,7 @@ CREATE TABLE RRHH.TipoDocumento(
 	idtipodocumento int identity(1,1),
 	nombredoc varchar(50) not null,
 	abreviatura char(10) not null,
+	fecha_registro datetime default getdate(),
 	constraint PK_tipodocumento
 	primary key (idtipodocumento),
 	constraint UQ_nombredoc UNIQUE (nombredoc),
@@ -243,7 +249,9 @@ CREATE TABLE RRHH.Persona (
 	and telefono not like '%[^0-9+()]%'),
 	email varchar(150),
 	idnacionalidad int not null,
-	estado varchar(20) default 'Activo'
+	estado varchar(20) default 'Activo',
+	fecha_registro datetime default getdate(),
+
 	constraint CHK_estado
 	CHECK (estado in ('Activo', 'Inactivo')),
 
@@ -274,8 +282,125 @@ CREATE TABLE RRHH.Cargo (
 	nomcargo varchar(50) not null,
 	descripcion varchar(max),
 	salario_base decimal(10,2) not null,
+	fecha_registro datetime default getdate(),
 	constraint PK_cargo Primary key (idcargo)
 );
 print 'Tabla Cargo Creada';
 go
 
+--Crear tabla Direccion 
+if OBJECT_ID('BJBC.Direccion', 'U') is not null
+begin
+	Drop Table BJBC.Direccion;
+	print 'La tabla BJBC.Direccion Eliminada'; 
+end
+go
+
+CREATE TABLE BJBC.Direccion(
+	iddireccion int identity(1,1),
+	idciudad int not null,
+	tipo_calle nvarchar(50) not null, --Av. Jr.
+	calle nvarchar(200) not null, --Atahualpa
+	numero nvarchar(10) default 'S/N',
+	referencia nvarchar(max),
+	codigo_postal nvarchar(10) not null,
+	fecha_registro datetime default getdate(),
+	constraint CHK_zip
+	CHECK (len(codigo_postal) between 5 and 10), --06001
+	latitud decimal(10,8) null,
+	longitud decimal(10,8) null,
+	altitud decimal(10,8) null,
+	constraint PK_direccion primary key(iddireccion),
+	constraint FK_direccion_ciudad 
+	foreign key(idciudad) references BJBC.Ciudad(idciudad)
+);
+print 'La tabla Direccion creada';
+go
+
+--Crear tabla Ventas.Cliente
+if OBJECT_ID('Ventas.Cliente', 'U') is not null
+begin
+	Drop Table Ventas.Cliente;
+	print 'La tabla Ventas.Cliente Eliminada'; 
+end
+go
+
+CREATE TABLE Ventas.Cliente(
+	idpersona int not null
+	constraint PK_Cliente primary key (idpersona),
+	fecha_nacimineto date not null,
+	genero varchar(20), --Maculino, Femenino, Empresa, No Especifica, Prefiero no decirlo
+	preferencia_viaje varchar(150) null,
+	contacto_emergencia varchar(150) null,
+	telefono_emergencia varchar(20) null,
+	observaciones varchar(max) null, --Informacion adicional
+	puntos_fidelidad int default 0,
+	fecha_registro datetime default getdate(),
+	nivel_cliente varchar(20) not null default 'Basico' --Basico, Bronze, Plata
+	constraint FK_cliente_persona
+	foreign key (idpersona) references RRHH.Persona(idpersona)
+);
+print 'Tabla Cliente creada';
+go
+
+--Crear tabla Empleado
+if OBJECT_ID('RRHH.Empleado', 'U') is not null
+begin
+	Drop Table RRHH.Empleado;
+	print 'La tabla RRHH.Empleado Eliminada'; 
+end
+go
+
+CREATE TABLE RRHH.Empleado(
+	idpersona int not null,
+	constraint PK_empleado primary key (idpersona),
+	cod_empleado varchar(15) null,
+	fecha_ingreso date not null,
+	fecha_cese date null,
+	tipo_contrato varchar(30) null,
+	estado_laboral varchar(20) not null default 'Activo',
+	constraint CHK_Estado_Laboral
+	CHECK (estado_laboral in ('Activo', 'Inactivo', 'Suspendido')),
+	jornada_laboral varchar(30) null,
+	regimen_laboral varchar(30) null,
+	id_supervisor int null,
+	contacto_emergencia varchar(150) null,
+	telefono_emergencia varchar(20) null,
+	observaciones varchar(max) null, --Informacion adicional
+	fecha_registro datetime default getdate(),
+	constraint FK_empleado_persona
+	foreign key (idpersona) references RRHH.Persona(idpersona),
+	constraint FK_empleado_supervisor
+	foreign key (id_supervisor) references RRHH.Persona(idpersona)
+);
+print 'Tabla Empleado creada';
+go
+
+--Crear tabla Direccion_cliente
+if OBJECT_ID('Ventas.Direccion_Cliente', 'U') is not null
+begin
+	Drop Table Ventas.Direccion_Cliente;
+	print 'La tabla Ventas.Direccion_Cliente Eliminada'; 
+end
+go
+
+CREATE TABLE Ventas.Direccion_Cliente(
+	idpersona int not null,
+	iddireccion int not null,
+	tipo_direccion varchar(20) not null,
+	constraint CHK_tipo_direccion
+	CHECK (tipo_direccion in ('Casa', 'Trabajo', 'Facturacion', 'Etrega')),
+	es_principal bit not null default 0,
+	estado_direccion varchar(20) not null default 'Activo',
+	fecha_registro datetime default getdate(),
+	constraint CHK_Estado_Laboral
+	CHECK (estado_direccion in ('Activo', 'Inactivo', 'Suspendido')),
+	constraint PK_direccion_cliente
+	primary key (idpersona, iddireccion),
+	constraint FK_direccion_cliente_persona
+	foreign key (idpersona) references RRHH.Persona(idpersona),
+	constraint FK_direccion_cliente
+	foreign key (iddireccion) references BJBC.Direccion(iddireccion)
+);
+print 'Tabla direccion_cliente creada';
+go
