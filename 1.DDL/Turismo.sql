@@ -714,3 +714,73 @@ CREATE TABLE Lugar.Lugar_Turistico(
 );
 print 'tabla lugar turistico creada';
 go
+
+--Crear tabla DireccionLugar_Turistico
+if OBJECT_ID('Lugar.DireccionLugar_Turistico', 'U') is not null
+begin
+	Drop Table Lugar.DireccionLugar_Turistico;
+	print 'La tabla Lugar.DireccionLugar_Turistico Eliminada'; 
+end
+go
+
+CREATE TABLE Lugar.DireccionLugar_Turistico(
+	idlugarturistico int not null,
+	iddireccion int not null,
+	tipo_direccion varchar(20) not null default 'Fisica',
+	referencia varchar(max),
+	es_principal bit default 0,
+	fecha_registro datetime default getdate(),
+	constraint PK_dire_lugarturistico primary key (idlugarturistico, iddireccion),
+	constraint FK_id_lugar foreign key (idlugarturistico) references Lugar.Lugar_Turistico(idlugarturistico),
+	constraint FK_id_direccion_lugar_t foreign key (iddireccion) references BJBC.Direccion (iddireccion)
+);
+print 'Tabla direccion lugar turistico creada';
+go
+
+--Crear tabla Tipo_Transporte
+if OBJECT_ID('Transporte.Tipo_Transporte', 'U') is not null
+begin
+	Drop Table Transporte.Tipo_Transporte;
+	print 'La tabla Transporte.Tipo_Transporte Eliminada'; 
+end
+go
+
+CREATE TABLE Transporte.Tipo_Transporte(
+	idtipotransporte int identity (1,1),
+	nombre varchar (50) not null,
+	descripcion varchar(max),
+	fecha_registro datetime default getdate(),
+	constraint PK_tipotransporte primary key (idtipotransporte),
+	constraint UQ_nombre_tranporte UNIQUE(nombre)
+);
+print 'tabla tipo transporte creado';
+go
+
+--Crear tabla Vehiculo
+if OBJECT_ID('Transporte.Vehiculo', 'U') is not null
+begin
+	Drop Table Transporte.Vehiculo;
+	print 'La tabla Transporte.Vehiculo Eliminada'; 
+end
+go
+
+CREATE TABLE Transporte.Vehiculo(
+	idvehiculo int identity (1,1),
+	idproveedor int not null,
+	placa varchar(10) not null,
+	marca varchar(50),
+	modelo varchar(50),
+	capasidad_pasajeros int not null,
+	anio_fabricacion int not null,
+	precio_km decimal (10,2),
+	precio_hora decimal (10,2),
+	estado_vehiculo varchar(20) default 'Disponible',
+	fecha_registro datetime default getdate(),
+	constraint PK_vehiculo primary key(idvehiculo),
+	constraint UQ_placa unique(placa),
+	constraint CHK_anio_fabricacion check(anio_fabricacion between 2000 and year(getdate())),
+	constraint CHK_estado_vehiculo check(estado_vehiculo in ('Disponible', 'En Servicio', 'En Mantenimiento', 'Fuera de servicio')),
+	constraint FK_vehiculo_proveedor foreign key(idproveedor) references Compras.Proveedor (idpersona),
+);
+print 'Tabla vehiculo creada';
+go
